@@ -1,0 +1,48 @@
+service: go-api-lambda-s3
+
+provider:
+  name: aws
+  runtime: go1.x
+  region: ap-northeast-1
+  iamRoleStatements:
+    - Effect: "Allow"
+      Action:
+        - "s3:GetObject"
+        - "s3:PutObject"
+      Resource:
+        Fn::Join:
+          - ""
+          - - "arn:aws:s3:::"
+            - ${self:provider.environment.Bucket}
+            - "/*"
+  environment:
+    Bucket: ${file(config/setting.json):BUCKET_NAME}
+
+package:
+  exclude:
+    - ./**
+  include:
+    - ./bin/**
+
+functions:
+  upload:
+    handler: bin/upload
+    environment: ${file(./config/setting.json)}
+    events:
+      - http:
+          path: upload
+          method: get
+  download:
+    handler: bin/download
+    environment: ${file(./config/setting.json)}
+    events:
+      - http:
+          path: download
+          method: get
+
+resources:
+ Resources:
+   Bucket:
+     Type: AWS::S3::Bucket
+     Properties:
+       BucketName: ${self:provider.environment.Bucket}
